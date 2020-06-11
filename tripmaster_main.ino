@@ -14,7 +14,7 @@ NMEAGPS               gps;
 float                 odometer;
 NeoGPS::Location_t    lastLoc;
 bool                  lastLocOK = false;
-NeoSWSerial           gpsPort(50, 51); //tx, rx gps
+NeoSWSerial           gpsPort(52, 53); //tx, rx gps
 const int SHOW_INTERVAL = 1; // 12;
 const int INITIAL_SHOW  = (2 * SHOW_INTERVAL) - 1;
       int show          = INITIAL_SHOW;
@@ -47,13 +47,15 @@ const int pulsadorPin = 43;
 const int pulsadorPin2 = 45;
 int valorPulsador = 0;
 int valorPulsador2 = 0;
-
-
-
+int pantalla = 0;
+int doble_pulsacion = 0;
+int boton1 = 0;
+int boton2 = 0;
 
 void setup()
 {
-  pinMode(pulsadorPin, INPUT);
+  //pinMode(pulsadorPin, INPUT);
+  
   gpsPort.begin(9600);
   Wire.begin();
   compass.init();
@@ -79,24 +81,75 @@ void loop()
 valorPulsador = digitalRead(pulsadorPin);
 valorPulsador2 = digitalRead(pulsadorPin2);
 
+
+
+
     if (valorPulsador == LOW) {
-          odometer = odometer + 0.1;
-          delay(250);
+          boton1 = 1;
   }
 
+
+  if (boton1 == 1){
+          odometer = odometer + 0.1;
+          delay(250);
+          boton1 = 0;
+
+  }
+
+
+
     if (valorPulsador2 == LOW) {
+          boton2 = 1;
+  }
+
+
+  if (boton2 == 1){
           odometer = odometer - 0.1;
           delay(250);
-      }
+          boton2 = 0;
+
+  }
+
     
+
+
+
+
+if (valorPulsador2 == LOW && valorPulsador == LOW) {
+  doble_pulsacion = 1;
+}
+
+
+
+//CAMBIAR ENTRE PANTALLAS    
+    if (doble_pulsacion == 1 && pantalla == 0) {
     
-    if (valorPulsador2 == LOW && valorPulsador == LOW ) {
-    
-          odometer = 0;
+          pantalla ++;;
+          Serial.println(pantalla);
+          doble_pulsacion = 0;
           delay(300);
+          tft.fillScreen(BLACK);
+      } 
+       
+    if (doble_pulsacion == 1 && pantalla == 1) {
     
-          exit;
-      }  
+          pantalla++;
+          Serial.println(pantalla); 
+          doble_pulsacion = 0;        
+          delay(300);
+          tft.fillScreen(BLACK);
+      } 
+
+    if (doble_pulsacion == 1 && pantalla == 2) {
+    
+          pantalla =0;
+          Serial.println(pantalla);
+          doble_pulsacion = 0;
+          delay(300);
+          tft.fillScreen(BLACK);
+      }
+
+    
 
 //  COMPROBAR SI HAY GPS. FALTA AÑADIR INFO CUANDO ESTÁ BUSCANDO SATÉLITES (O NÚMERO DE SATELITES ENCONTRADOS)
 if (gps.available( gpsPort )) {
@@ -157,102 +210,295 @@ if (gps.available( gpsPort )) {
 
 
 
-if (contador == 1){  
+ if (contador == 1 && pantalla == 0){  
+                                
+                                
+                              
+                              
+                              tft.drawLine(10, 90, 470, 90, 222);
+                              tft.drawLine(240, 90, 240, 310, 222);
+                              tft.setTextSize(7);
+                              tft.setTextColor(WHITE, BLACK);
+                              tft.setCursor(10, 20);
+                              
+                              
+                              
+                              
+                              velocidad_actual_ent = int (fix.speed_kph());
+                              
+                              
+                              // DESPUÉS DE CONVERTIR A ENTERO LA VELOCIDAD, LA MOSTRAMOS SOLO SI EL VALOR ES DIFERENTE AL ANTERIOR
+                               
+                                            if (velocidad_actual != velocidad_actual_ent){
+                                              tft.setCursor(10, 20);
+                                              tft.fillRect(10, 20, 120, 50, BLACK);
+                                              tft.print( velocidad_actual );
+                                            
+                                             } 
+                              
+                              tft.setTextSize(3);
+                              tft.setCursor(140, 45);
+                              tft.println ("km/h");
+                              
+                              
+                              
+                              int heading = compass.readHeading();
+                              
+                              
+                              
+                              
+                              //DIBUJAMOS LA BRÚJULA
+                              
+                              tft.setTextSize(4);
+                              tft.setTextColor(RED, WHITE);
+                              tft.setCursor(10, 110); 
+                              tft.println(" Rumbo: ");
+                              tft.setTextSize(10);
+                              tft.setTextColor(WHITE, BLACK);
+                              tft.setCursor(20, 200);
+                              
+                              
+                              
+                              
+                              // PARA QUE LA BRÚJULA SOLO SE REFRESQUE AL CAMBIAR EL NÚMERO DE CIFRAS A MOSTRAR
+                              
+                                            if (heading < 100 && refresh == 0) {
+                                              refresh = 1;
+                                              tft.fillRect(20, 200, 170, 80, BLACK); // PARA QUE SE ACTUALICE SOLO UNA PARTE DE LA PANTALLA HAY QUE PONER UN RECTÁNGULO DEL MISMO COLOR QUE EL FONDO DETRÁS DEL TEXTO
+                                            }
+                                            if (heading >= 100 && refresh ==1) {
+                                                refresh = 0;
+                                              tft.fillRect(20, 200, 170, 80, BLACK); 
+                                            }
+                                            
+                                            if (heading < 10 && refresco == 0) {
+                                              refresco = 1;
+                                              tft.fillRect(20, 200, 170, 80, BLACK); 
+                                            }
+                                            if (heading >= 10 && refresco == 1) {
+                                              refresco = 0;
+                                              tft.fillRect(20, 200, 170, 80, BLACK); 
+                                            }
+                              
+                              
+                              
+                              // MOSTRAR VALOR BRÚJULA DESPUÉS DE ACTUALIZAR CUANDO SEA NECESARIO
+                              
+                              tft.println(heading);
+                              Serial.println(heading);
+                              
+                              tft.setCursor(200, 200);
+                              tft.setTextSize(3);
+                              tft.println("o");
+                              
+                              
+                              // MOSTRAR DISTANCIA RECORRIDA
+                              
+                              tft.setTextSize(4);
+                              tft.setTextColor(BLUE, YELLOW);
+                              tft.setCursor(265, 110);
+                              tft.println("Trip: ");
+                              tft.setTextSize(2);
+                              tft.setTextSize(7);
+                              tft.setCursor(270, 200);
+                              tft.setTextColor(WHITE, BLACK);
+                              tft.println(odometer);
+                              
+                                  contador = 0;
+                                  line++;
+                              }
+
+
+ if (contador == 1 && pantalla == 1){  
   
+                                tft.drawLine(10, 90, 470, 90, 222);
+                                tft.drawLine(240, 90, 240, 310, 222);
+                                tft.setTextSize(7);
+                                tft.setTextColor(WHITE, BLACK);
+                                tft.setCursor(10, 20);
+                                
+                                
+                                
+                                
+                                velocidad_actual_ent = int (fix.speed_kph());
+                                
+                                
+                                // DESPUÉS DE CONVERTIR A ENTERO LA VELOCIDAD, LA MOSTRAMOS SOLO SI EL VALOR ES DIFERENTE AL ANTERIOR
+                                 
+                                              if (velocidad_actual != velocidad_actual_ent){
+                                                tft.setCursor(10, 20);
+                                                tft.fillRect(10, 20, 120, 50, BLACK);
+                                                tft.print( velocidad_actual );
+                                              
+                                               } 
+                                
+                                tft.setTextSize(3);
+                                tft.setCursor(140, 45);
+                                tft.println ("km/h");
+                                
+                                
+                                
+                                int heading = compass.readHeading();
+                                
+                                
+                                
+                                
+                                //DIBUJAMOS LA BRÚJULA
+                                
+                                tft.setTextSize(4);
+                                tft.setTextColor(BLACK, WHITE);
+                                tft.setCursor(10, 110); 
+                                tft.println(" Rumbo: ");
+                                tft.setTextSize(10);
+                                tft.setTextColor(WHITE, BLACK);
+                                tft.setCursor(20, 200);
+                                
+                                
+                                
+                                
+                                // PARA QUE LA BRÚJULA SOLO SE REFRESQUE AL CAMBIAR EL NÚMERO DE CIFRAS A MOSTRAR
+                                
+                                              if (heading < 100 && refresh == 0) {
+                                                refresh = 1;
+                                                tft.fillRect(20, 200, 170, 80, BLACK); 
+                                              }
+                                              if (heading >= 100 && refresh ==1) {
+                                                  refresh = 0;
+                                                tft.fillRect(20, 200, 170, 80, BLACK); 
+                                              }
+                                              
+                                              if (heading < 10 && refresco == 0) {
+                                                refresco = 1;
+                                                tft.fillRect(20, 200, 170, 80, BLACK); 
+                                              }
+                                              if (heading >= 10 && refresco == 1) {
+                                                refresco = 0;
+                                                tft.fillRect(20, 200, 170, 80, BLACK); 
+                                              }
+                                
+                                
+                                
+                                // MOSTRAR VALOR BRÚJULA DESPUÉS DE ACTUALIZAR CUANDO SEA NECESARIO
+                                
+                                tft.println(heading);
+                                Serial.println(heading);
+                                
+                                tft.setCursor(200, 200);
+                                tft.setTextSize(3);
+                                tft.println("o");
+                                
+                                
+                                // MOSTRAR DISTANCIA RECORRIDA
+                                
+                                tft.setTextSize(4);
+                                tft.setTextColor(BLUE, YELLOW);
+                                tft.setCursor(265, 110);
+                                tft.println("Trip: ");
+                                tft.setTextSize(2);
+                                tft.setTextSize(7);
+                                tft.setCursor(270, 200);
+                                tft.setTextColor(WHITE, BLACK);
+                                tft.println(odometer);
+                                
+                                    contador = 0;
+                                    line++;
+                                }
+
+
+
+
+ if (contador == 1 && pantalla == 2){  
   
-
-
-tft.drawLine(10, 90, 470, 90, 222);
-tft.drawLine(240, 90, 240, 310, 222);
-tft.setTextSize(7);
-tft.setTextColor(WHITE, BLACK);
-tft.setCursor(10, 20);
-
-
-
-
-velocidad_actual_ent = int (fix.speed_kph());
-
-
-// DESPUÉS DE CONVERTIR A ENTERO LA VELOCIDAD, LA MOSTRAMOS SOLO SI EL VALOR ES DIFERENTE AL ANTERIOR
- 
-              if (velocidad_actual != velocidad_actual_ent){
-                tft.setCursor(10, 20);
-                tft.fillRect(10, 20, 120, 50, BLACK);
-                tft.print( velocidad_actual );
-              
-               } 
-
-tft.setTextSize(3);
-tft.setCursor(140, 45);
-tft.println ("km/h");
-
-
-
-int heading = compass.readHeading();
-
-
-
-
-//DIBUJAMOS LA BRÚJULA
-
-tft.setTextSize(4);
-tft.setTextColor(RED, WHITE);
-tft.setCursor(10, 110); 
-tft.println(" Rumbo: ");
-tft.setTextSize(10);
-tft.setTextColor(WHITE, BLACK);
-tft.setCursor(20, 200);
-
-
-
-
-// PARA QUE LA BRÚJULA SOLO SE REFRESQUE AL CAMBIAR EL NÚMERO DE CIFRAS A MOSTRAR
-
-              if (heading < 100 && refresh == 0) {
-                refresh = 1;
-                tft.fillRect(20, 200, 170, 80, BLACK); // PARA QUE SE ACTUALICE SOLO UNA PARTE DE LA PANTALLA HAY QUE PONER UN RECTÁNGULO DEL MISMO COLOR QUE EL FONDO DETRÁS DEL TEXTO
-              }
-              if (heading >= 100 && refresh ==1) {
-                  refresh = 0;
-                tft.fillRect(20, 200, 170, 80, BLACK); // PARA QUE SE ACTUALICE SOLO UNA PARTE DE LA PANTALLA HAY QUE PONER UN RECTÁNGULO DEL MISMO COLOR QUE EL FONDO DETRÁS DEL TEXTO
-              }
-              
-              if (heading < 10 && refresco == 0) {
-                refresco = 1;
-                tft.fillRect(20, 200, 170, 80, BLACK); // PARA QUE SE ACTUALICE SOLO UNA PARTE DE LA PANTALLA HAY QUE PONER UN RECTÁNGULO DEL MISMO COLOR QUE EL FONDO DETRÁS DEL TEXTO
-              }
-              if (heading >= 10 && refresco == 1) {
-                refresco = 0;
-                tft.fillRect(20, 200, 170, 80, BLACK); // PARA QUE SE ACTUALICE SOLO UNA PARTE DE LA PANTALLA HAY QUE PONER UN RECTÁNGULO DEL MISMO COLOR QUE EL FONDO DETRÁS DEL TEXTO
-              }
-
-
-
-// MOSTRAR VALOR BRÚJULA DESPUÉS DE ACTUALIZAR CUANDO SEA NECESARIO
-
-tft.println(heading);
-Serial.println(heading);
-
-tft.setCursor(200, 200);
-tft.setTextSize(3);
-tft.println("o");
-
-
-// MOSTRAR DISTANCIA RECORRIDA
-
-tft.setTextSize(4);
-tft.setTextColor(BLUE, YELLOW);
-tft.setCursor(265, 110);
-tft.println("Trip: ");
-tft.setTextSize(2);
-tft.setTextSize(7);
-tft.setCursor(270, 200);
-tft.setTextColor(WHITE, BLACK);
-tft.println(odometer);
-
-    contador = 0;
-    line++;
-}
-
+                                tft.drawLine(10, 90, 470, 90, 222);
+                                tft.drawLine(240, 90, 240, 310, 222);
+                                tft.setTextSize(7);
+                                tft.setTextColor(WHITE, BLACK);
+                                tft.setCursor(10, 20);
+                                
+                                
+                                
+                                
+                                velocidad_actual_ent = int (fix.speed_kph());
+                                
+                                
+                                // DESPUÉS DE CONVERTIR A ENTERO LA VELOCIDAD, LA MOSTRAMOS SOLO SI EL VALOR ES DIFERENTE AL ANTERIOR
+                                 
+                                              if (velocidad_actual != velocidad_actual_ent){
+                                                tft.setCursor(10, 20);
+                                                tft.fillRect(10, 20, 120, 50, BLACK);
+                                                tft.print( velocidad_actual );
+                                              
+                                               } 
+                                
+                                tft.setTextSize(3);
+                                tft.setCursor(140, 45);
+                                tft.println ("km/h");
+                                
+                                
+                                
+                                int heading = compass.readHeading();
+                                
+                                
+                                
+                                
+                                //DIBUJAMOS LA BRÚJULA
+                                
+                                tft.setTextSize(4);
+                                tft.setTextColor(BLUE, WHITE);
+                                tft.setCursor(10, 110); 
+                                tft.println(" Rumbo: ");
+                                tft.setTextSize(10);
+                                tft.setTextColor(WHITE, BLACK);
+                                tft.setCursor(20, 200);
+                                
+                                
+                                
+                                
+                                // PARA QUE LA BRÚJULA SOLO SE REFRESQUE AL CAMBIAR EL NÚMERO DE CIFRAS A MOSTRAR
+                                
+                                              if (heading < 100 && refresh == 0) {
+                                                refresh = 1;
+                                                tft.fillRect(20, 200, 170, 80, BLACK); 
+                                              }
+                                              if (heading >= 100 && refresh ==1) {
+                                                  refresh = 0;
+                                                tft.fillRect(20, 200, 170, 80, BLACK); 
+                                              }
+                                              
+                                              if (heading < 10 && refresco == 0) {
+                                                refresco = 1;
+                                                tft.fillRect(20, 200, 170, 80, BLACK); 
+                                              }
+                                              if (heading >= 10 && refresco == 1) {
+                                                refresco = 0;
+                                                tft.fillRect(20, 200, 170, 80, BLACK); 
+                                              }
+                                
+                                
+                                
+                                // MOSTRAR VALOR BRÚJULA DESPUÉS DE ACTUALIZAR CUANDO SEA NECESARIO
+                                
+                                tft.println(heading);
+                                Serial.println(heading);
+                                
+                                tft.setCursor(200, 200);
+                                tft.setTextSize(3);
+                                tft.println("o");
+                                
+                                
+                                // MOSTRAR DISTANCIA RECORRIDA
+                                
+                                tft.setTextSize(4);
+                                tft.setTextColor(BLUE, YELLOW);
+                                tft.setCursor(265, 110);
+                                tft.println("Trip: ");
+                                tft.setTextSize(2);
+                                tft.setTextSize(7);
+                                tft.setCursor(270, 200);
+                                tft.setTextColor(WHITE, BLACK);
+                                tft.println(odometer);
+                                
+                                    contador = 0;
+                                    line++;
+                                }
 }
